@@ -25,6 +25,8 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
+from cStringIO import StringIO
+
 # This "staircase" of import attempts is ugly.  If there's a nicer way to do
 # this, please let me know!
 try:
@@ -257,19 +259,19 @@ def _add_subelem(root_element, name, value):
     else:
         ET.SubElement(root_element, name).text = value
 
-def dump_to_file(tree, filename, pretty):
+def _stringify(tree, pretty):
 
     """
-    Dump an ElementTree to a file, with line breaks and indentation.
+    Turn an ElementTree into a string, optionally with line breaks and indentation.
     """
 
-    fp = open(filename, "w")
     if pretty and feedformatterCanPrettyPrint:
+        string = StringIO()
         doc = FromXml(ET.tostring(tree))
-        PrettyPrint(doc,fp,indent="    ")
+        PrettyPrint(doc,string,indent="    ")
+        return string.getvalue()
     else:
-        fp.write(ET.tostring(tree))
-    fp.close()
+        return ET.tostring(tree)
 
 class Feed:
 
@@ -296,11 +298,7 @@ class Feed:
 
     def format_rss1_string(self, validate=True, pretty=False):
 
-        pass
-
-    def format_rss1_file(self, filename, validate=True, pretty=False):
-
-        """Format the feed as RSS 1.0 and save the result to a file."""
+        """Format the feed as RSS 1.0 and return the result as a string."""
 
         if validate:
             self.validate_rss1()
@@ -318,7 +316,16 @@ class Feed:
             RSS1item = ET.SubElement (RSS1root, 'item',
                 {"rdf:about" : item["link"]})
             _add_subelems(RSS1item, _rss1_item_mappings, item)
-        _dump_to_file(RSS1root, filename, pretty=False)
+        return _stringify(RSS1root, pretty=pretty)
+
+    def format_rss1_file(self, filename, validate=True, pretty=False):
+
+        """Format the feed as RSS 1.0 and save the result to a file."""
+
+        string = self.format_rss1_string(validate, pretty)
+        fp = open(filename, "w")
+        fp.write(string)
+        fp.close()
 
     ### RSS 2.0 STUFF ------------------------------
 
@@ -348,33 +355,28 @@ class Feed:
                 raise InvalidFeedException("Each item element in an RSS 2.0 "
                 "feed must contain at least a title or description subelement")
 
+    def format_rss2_string(self, validate=True, pretty=False):
+
+        """Format the feed as RSS 2.0 and return the result as a string."""
+
+        if validate:
+            self.validate_rss2()
+        RSS2root = ET.Element( 'rss', {'version':'2.0'} )
+        RSS2channel = ET.SubElement( RSS2root, 'channel' )
+        _add_subelems(RSS2channel, _rss2_channel_mappings, self.feed)
+        for item in self.items:            
+            RSS2item = ET.SubElement ( RSS2channel, 'item' )
+            _add_subelems(RSS2item, _rss2_item_mappings, item)
+        return _stringify(RSS2root, pretty=pretty)
+
     def format_rss2_file(self, filename, validate=True, pretty=False):
 
         """Format the feed as RSS 2.0 and save the result to a file."""
 
-        if validate:
-            self.validate_rss2()
-        RSS2root = ET.Element( 'rss', {'version':'2.0'} )
-        RSS2channel = ET.SubElement( RSS2root, 'channel' )
-        _add_subelems(RSS2channel, _rss2_channel_mappings, self.feed)
-        for item in self.items:            
-            RSS2item = ET.SubElement ( RSS2channel, 'item' )
-            _add_subelems(RSS2item, _rss2_item_mappings, item)
-        self.dump_to_file(RSS2root, filename, pretty=pretty)
-
-    def format_rss2_string(self, validate=True, pretty=False):
-
-        """Format the feed as RSS 2.0 and save the result to a file."""
-
-        if validate:
-            self.validate_rss2()
-        RSS2root = ET.Element( 'rss', {'version':'2.0'} )
-        RSS2channel = ET.SubElement( RSS2root, 'channel' )
-        _add_subelems(RSS2channel, _rss2_channel_mappings, self.feed)
-        for item in self.items:            
-            RSS2item = ET.SubElement ( RSS2channel, 'item' )
-            _add_subelems(RSS2item, _rss2_item_mappings, item)
-        return ET.tostring(RSS2root)
+        string = self.format_rss2_string(validate, pretty)
+        fp = open(filename, "w")
+        fp.write(string)
+        fp.close()
 
     ### ATOM STUFF ------------------------------
 
@@ -394,11 +396,7 @@ class Feed:
 
     def format_atom_string(self, validate=True, pretty=False):
 
-        pass
-
-    def format_atom_file(self, filename, validate=True, pretty=False):
-
-        """Format the feed as Atom 1.0 and save the result to a file."""
+        """Format the feed as Atom 1.0 and return the result as a string."""
 
         if validate:
             self.validate_atom()
@@ -407,7 +405,16 @@ class Feed:
         for entry in self.entries:
             AtomItem = ET.SubElement ( AtomRoot, 'entry' )
             _add_subelems(AtomItem, _atom_item_mappings, entry)
-        _dump_to_file(AtomRoot, filename, pretty=pretty)
+        return _stringify(AtomRoot, pretty=pretty)
+
+    def format_atom_file(self, filename, validate=True, pretty=False):
+
+        """Format the feed as Atom 1.0 and save the result to a file."""
+
+        string = self.format_atom_string(validate, pretty)
+        fp = open(filename, "w")
+        fp.write(string)
+        fp.close()
 
 class InvalidFeedException(Exception):
 
@@ -426,6 +433,7 @@ def main():
     feed = Feed()
     feed.feed["title"] = "Test Feed"
     feed.feed["link"] = "http://code.google.com/p/feedformatter/"
+    feed.feed["author"] = "Luke Maurits"
     feed.feed["description"] = "A simple test feed for the feedformatter project"
     item = {}
     item["title"] = "Test item"
@@ -433,8 +441,11 @@ def main():
     item["description"] = "Python programming language"
     item["guid"] = "1234567890"
     feed.items.append(item)
+    print("---- RSS 1.0 ----")
     print feed.format_rss1_string(pretty=True)
+    print("---- RSS 2.0 ----")
     print feed.format_rss2_string(pretty=True)
+    print("---- Atom 1.0 ----")
     print feed.format_atom_string(pretty=True)
 
 if __name__ == "__main__":
