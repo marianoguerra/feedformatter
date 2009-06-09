@@ -11,5 +11,4 @@ setup(
     url='http://code.google.com/p/feedparser/',
     license='http://www.luke.maurits.id.au/software/bsdlicense.txt',
     py_modules=['feedformatter'],
-    install_requires=['elementtree']
 )
