@@ -72,8 +72,7 @@ _rss2_channel_mappings = (
     (("title",), "title"),
     (("link", "url"), "link"),
     (("description", "desc", "summary"), "description"),
-    (("pubDate", "pubdate", "date", "published", "updated"), "pubDate",
-        lambda(x): _format_datetime("rss2",x)),
+    (("pubDate", "pubdate", "date", "published", "updated"), "pubDate", lambda(x): _format_datetime("rss2",x)),
     (("category",), "category"),
     (("language",), "language"),
     (("copyright",), "copyright"),
@@ -88,8 +87,7 @@ _rss2_item_mappings = (
     (("link", "url"), "link"),
     (("description", "desc", "summary"), "description"),
     (("guid", "id"), "guid"),
-    (("pubDate", "pubdate", "date", "published", "updated"), "pubDate",
-lambda(x): _format_datetime("rss2",x)),
+    (("pubDate", "pubdate", "date", "published", "updated"), "pubDate", lambda(x): _format_datetime("rss2",x)),
     (("category",), "category"),
     (("author",), "author", lambda(x): _rssify_author(x))
 )
@@ -100,8 +98,7 @@ _atom_feed_mappings = (
     (("title",), "title"),
     (("link", "url"), "id"),
     (("description", "desc", "summary"), "subtitle"),
-    (("pubDate", "pubdate", "date", "published", "updated"), "updated",
-lambda(x): _format_datetime("atom",x)),
+    (("pubDate", "pubdate", "date", "published", "updated"), "updated", lambda(x): _format_datetime("atom",x)),
     (("category",), "category"),
     (("author",), "author", lambda(x): _atomise_author(x))
 )
@@ -111,8 +108,7 @@ _atom_item_mappings = (
     (("link", "url"), "id"),
     (("link", "url"), "link", lambda(x): _atomise_link(x)),
     (("description", "desc", "summary"), "summary"),
-    (("pubDate", "pubdate", "date", "published", "updated"), "updated",
-lambda(x): _format_datetime("atom",x)),
+    (("pubDate", "pubdate", "date", "published", "updated"), "updated", lambda(x): _format_datetime("atom",x)),
     (("category",), "category"),
     (("author",), "author", lambda(x): _atomise_author(x))
 )
@@ -129,7 +125,7 @@ def _get_tz_offset():
     hours = minutes/60
     minutes = minutes - hours*60
     if seconds < 0:
-        return "%02d:%d" % (hours, minutes)
+        return "-%02d:%d" % (hours, minutes)
     else:
         return "+%02d:%d" % (hours, minutes)
 
@@ -140,11 +136,11 @@ def _convert_datetime(time):
     standard 9 part time tuple.
     """
 
-    if type(time) is tuple or type(time) is struct_time:
+    if (type(time) is tuple and len(time) ==9) or type(time) is struct_time:
         # Already done!
         return time
     elif type(time) is int or type(time) is float:
-        # Assume this is an epoch time
+        # Assume this is a seconds-since-epoch time
         return localtime(time)
     elif type(time) is str:    
         if time.isalnum():
@@ -167,7 +163,7 @@ def _convert_datetime(time):
 def _format_datetime(feed_type, time):
 
     """
-    Convert a standard 9 part time tuple into a string which can be
+    Convert some representation of a date and time into a string which can be
     used in a validly formatted feed of type feed_type.  Raise an
     Exception if this cannot be done.
     """
@@ -176,7 +172,7 @@ def _format_datetime(feed_type, time):
     time = _convert_datetime(time)
 
     # Then, convert that to the appropriate string
-    if feed_type in ("rss1", "rss2"):
+    if feed_type is "rss2":
         return strftime("%a, %d %b %Y %H:%M:%S %Z", time)
     elif feed_type is "atom":
         return strftime("%Y-%m-%dT%H:%M:%S", time) + _get_tz_offset();
@@ -222,6 +218,7 @@ def _rssify_author(author):
             return None
     else:
         if "@" in author and "." in author:
+            # Probably an email address
             return author
         else:
             return None
@@ -296,6 +293,30 @@ class Feed:
         """Raise an InvalidFeedException if the feed cannot be validly
         formatted as RSS 1.0."""
 
+        # <channel> must contain "title"
+        if "title" not in self.feed:
+            raise InvalidFeedException("The channel element of an "
+            "RSS 1.0 feed must contain a title subelement")
+
+        # <channel> must contain "link"
+        if "link" not in self.feed:
+            raise InvalidFeedException("The channel element of an "
+            " RSS 1.0 feeds must contain a link subelement")
+
+        # <channel> must contain "description"
+        if "description" not in self.feed:
+            raise InvalidFeedException("The channel element of an "
+            "RSS 1.0 feeds must contain a description subelement")
+
+        # Each <item> must contain "title" and "link"
+        for item in self.items:
+            if "title" not in item:
+                raise InvalidFeedException("Each item element in an RSS 1.0 "
+                "feed must contain a title subelement")
+            if "link" not in item:
+                raise InvalidFeedException("Each item element in an RSS 1.0 "
+                "feed must contain a link subelement")
+        
     def format_rss1_string(self, validate=True, pretty=False):
 
         """Format the feed as RSS 1.0 and return the result as a string."""
