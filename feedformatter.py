@@ -1,4 +1,4 @@
-# Feedformatter 0.4
+# Feedformatter
 # Copyright (c) 2008, Luke Maurits <luke@maurits.id.au>
 # All rights reserved.
 #
@@ -24,6 +24,8 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
+
+__version__ = "TRUNK"
 
 from cStringIO import StringIO
 
