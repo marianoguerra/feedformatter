@@ -54,7 +54,8 @@ try:
 except ImportError:
     feedformatterCanPrettyPrint = False
 
-from time import time, strftime, localtime, mktime, struct_time, timezone
+from time import time, strftime, strptime, localtime, mktime, struct_time, timezone
+import datetime
 
 # RSS 1.0 Functions ----------
 
@@ -140,20 +141,19 @@ def _convert_datetime(time):
     standard 9 part time tuple.
     """
 
-    if (type(time) is tuple and len(time) ==9) or type(time) is struct_time:
+    if type(time) is datetime.datetime:
+        return time.timetuple()
+    elif (type(time) is tuple and len(time) ==9) or type(time) is struct_time:
         # Already done!
         return time
     elif type(time) is int or type(time) is float:
         # Assume this is a seconds-since-epoch time
         return localtime(time)
-    elif type(time) is str:    
-        if time.isalnum():
-            # String is alphanumeric - a time stamp?
+    elif type(time) in types.StringTypes:
+        # A time stamp?
             try:
                 return strptime(time, "%a, %d %b %Y %H:%M:%S %Z")
             except ValueError:
-                raise Exception("Unrecongised time format!")        
-        else:
             # Maybe this is a string of an epoch time?
             try:
                 return localtime(float(time))
