@@ -26,6 +26,8 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 __version__ = "TRUNK"
+__author__ = "Luke Maurits, Michael Stella"
+__copyright__ = "Copyright 2008  Luke Maurits"
 
 from cStringIO import StringIO
 
@@ -182,10 +184,10 @@ def _format_datetime(feed_type, time):
 def _atomise_link(link):
 
     if type(link) is dict:
-        return dict
+        return link
     else:
         return {"href" : link}
-        
+
 def _atomise_author(author):
 
     """
