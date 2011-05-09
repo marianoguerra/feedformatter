@@ -24,10 +24,11 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
+#
 
 __version__ = "TRUNK"
 __author__ = "Luke Maurits, Michael Stella"
-__copyright__ = "Copyright 2008  Luke Maurits"
+__copyright__ = "Copyright 2008 Luke Maurits"
 
 from cStringIO import StringIO
 
@@ -75,7 +76,7 @@ _rss1_item_mappings = (
 
 _rss2_channel_mappings = (
     (("title",), "title"),
-    (("link", "url"), "link"),
+    (("link", "url"), "link", lambda(x): _rssify_link(x)),
     (("description", "desc", "summary"), "description"),
     (("pubDate", "pubdate", "date", "published", "updated"), "pubDate", lambda(x): _format_datetime("rss2",x)),
     (("category",), "category"),
@@ -89,7 +90,7 @@ _rss2_channel_mappings = (
 
 _rss2_item_mappings = (
     (("title",), "title"),
-    (("link", "url"), "link"),
+    (("link", "url"), "link", lambda(x): _rssify_link(x)),
     (("description", "desc", "summary"), "description"),
     (("guid", "id"), "guid"),
     (("pubDate", "pubdate", "date", "published", "updated"), "pubDate", lambda(x): _format_datetime("rss2",x)),
@@ -101,7 +102,8 @@ _rss2_item_mappings = (
 
 _atom_feed_mappings = (
     (("title",), "title"),
-    (("link", "url"), "id"),
+    (("id", "link", "url"), "id", lambda(x): _atomise_id(x)),
+    (("link", "url"), "link", lambda(x):_atomise_link(x)),
     (("description", "desc", "summary"), "subtitle"),
     (("pubDate", "pubdate", "date", "published", "updated"), "updated", lambda(x): _format_datetime("atom",x)),
     (("category",), "category"),
@@ -110,10 +112,12 @@ _atom_feed_mappings = (
 
 _atom_item_mappings = (
     (("title",), "title"),
-    (("link", "url"), "id"),
-    (("link", "url"), "link", lambda(x): _atomise_link(x)),
+    (("link", "url"), "link", lambda(x): _atomise_link(x, rel='alternate')),
+    (("id", "link", "url"), "id", lambda(x): _atomise_id(x)),
     (("description", "desc", "summary"), "summary"),
-    (("pubDate", "pubdate", "date", "published", "updated"), "updated", lambda(x): _format_datetime("atom",x)),
+    (("content",), "content", lambda(x): _format_content(x)),
+    (("pubDate", "pubdate", "date", "published", "updated"), "published", lambda(x): _format_datetime("atom",x)),
+    (("updated",), "updated", lambda(x): _format_datetime("atom",x)),
     (("category",), "category"),
     (("author",), "author", lambda(x): _atomise_author(x))
 )
@@ -129,10 +133,11 @@ def _get_tz_offset():
     minutes = seconds/60
     hours = minutes/60
     minutes = minutes - hours*60
+    hours = abs(hours)
     if seconds < 0:
-        return "-%02d:%d" % (hours, minutes)
+        return "-%02d:%02d" % (hours, minutes)
     else:
-        return "+%02d:%d" % (hours, minutes)
+        return "+%02d:%02d" % (hours, minutes)
 
 def _convert_datetime(time):
 
@@ -151,15 +156,15 @@ def _convert_datetime(time):
         return localtime(time)
     elif type(time) in types.StringTypes:
         # A time stamp?
-            try:
-                return strptime(time, "%a, %d %b %Y %H:%M:%S %Z")
-            except ValueError:
+        try:
+            return strptime(time, "%a, %d %b %Y %H:%M:%S %Z")
+        except ValueError:
             # Maybe this is a string of an epoch time?
             try:
                 return localtime(float(time))
             except ValueError:
                 # Guess not.
-                raise Exception("Unrecongised time format!")                 
+                raise Exception("Unrecongised time format!")
     else:
         # No idea what this is.  Give up!
         raise Exception("Unrecongised time format!")
@@ -171,7 +176,7 @@ def _format_datetime(feed_type, time):
     used in a validly formatted feed of type feed_type.  Raise an
     Exception if this cannot be done.
     """
-    
+
     # First, convert time into a time structure
     time = _convert_datetime(time)
 
@@ -181,12 +186,22 @@ def _format_datetime(feed_type, time):
     elif feed_type is "atom":
         return strftime("%Y-%m-%dT%H:%M:%S", time) + _get_tz_offset();
 
-def _atomise_link(link):
+def _atomise_id(tag):
+
+    if type(tag) is dict:
+        return tag['href'].replace('http://', 'tag:')
+    return tag.replace('http://', 'tag:')
+
+def _atomise_link(link, rel=None):
 
     if type(link) is dict:
+        if 'type' not in link:
+            link['type'] = 'text/html'
+        if rel and 'rel' not in link:
+            link['rel'] = rel
         return link
     else:
-        return {"href" : link}
+        return {'href' : link, 'type': 'text/html', 'rel': rel}
 
 def _atomise_author(author):
 
@@ -227,6 +242,29 @@ def _rssify_author(author):
         else:
             return None
 
+def _rssify_link(link):
+
+    if type(link) is dict:
+        return link['href']
+    else:
+        return link
+
+def _format_content(content):
+    """Converts the ATOM 'content' node into a dict,
+        which will allow one to pass in a dict which has
+        an optionaly 'type' argument
+        """
+
+    if type(content) is dict:
+        if not 'type' in content:
+            content['type'] = 'text'
+        return content
+    else:
+        return {
+            'type':     'html',
+            'content':  content,
+        }
+
 def _add_subelems(root_element, mappings, dictionary):
 
     """
@@ -252,11 +290,21 @@ def _add_subelem(root_element, name, value):
     if type(value) is dict:
         ### HORRIBLE HACK!
         if name=="link":
-            ET.SubElement(root_element, name, href=value["href"])
+            ET.SubElement(root_element, name, value)
+
+        elif name == 'content':
+            # A wee hack too, the content node must be 
+            # converted to a CDATA block. This is a sort of cheat, see:
+            # http://stackoverflow.com/questions/174890/how-to-output-cdata-using-elementtree
+            e = ET.Element(name, type= value['type'])
+            e.append(CDATA(value['content']))
+            root_element.append(e)
+
         else:
             subElem = ET.SubElement(root_element, name)
             for key in value:
                 _add_subelem(subElem, key, value[key])
+
     else:
         ET.SubElement(root_element, name).text = value
 
@@ -268,11 +316,26 @@ def _stringify(tree, pretty):
 
     if pretty and feedformatterCanPrettyPrint:
         string = StringIO()
-        doc = FromXml(ET.tostring(tree))
+        doc = FromXml(_elementToString(tree))
         PrettyPrint(doc,string,indent="    ")
         return string.getvalue()
     else:
-        return ET.tostring(tree)
+        return _elementToString(tree)
+
+def _elementToString(element, encoding=None):
+    """
+    This replaces ElementTree's tostring() function
+    with one that will use our local ElementTreeCDATA
+    class instead
+    """
+
+    class dummy:
+        pass
+    data = []
+    file = dummy()
+    file.write = data.append
+    ElementTreeCDATA(element).write(file, encoding)
+    return ''.join(data)
 
 class Feed:
 
@@ -392,7 +455,8 @@ class Feed:
         for item in self.items:            
             RSS2item = ET.SubElement ( RSS2channel, 'item' )
             _add_subelems(RSS2item, _rss2_item_mappings, item)
-        return _stringify(RSS2root, pretty=pretty)
+
+        return '<?xml version="1.0" encoding="UTF-8" ?>\n' + _stringify(RSS2root, pretty=pretty)
 
     def format_rss2_file(self, filename, validate=True, pretty=False):
 
@@ -430,7 +494,7 @@ class Feed:
         for entry in self.entries:
             AtomItem = ET.SubElement ( AtomRoot, 'entry' )
             _add_subelems(AtomItem, _atom_item_mappings, entry)
-        return _stringify(AtomRoot, pretty=pretty)
+        return '<?xml version="1.0" encoding="UTF-8" ?>\n' + _stringify(AtomRoot, pretty=pretty)
 
     def format_atom_file(self, filename, validate=True, pretty=False):
 
@@ -444,6 +508,23 @@ class Feed:
 class InvalidFeedException(Exception):
 
     pass
+
+def CDATA(text=None):
+    element = ET.Element(CDATA)
+    element.text = text
+    return element
+
+class ElementTreeCDATA(ET.ElementTree):
+    """
+    Subclass of ElementTree which handles CDATA blocks reasonably
+    """
+    def _write(self, file, node, encoding, namespaces):
+        if node.tag is CDATA:
+            text = node.text.encode(encoding)
+            file.write("\n<![CDATA[%s]]>\n" % text)
+        else:
+            ET.ElementTree._write(self, file, node, encoding, namespaces)
+
 
 ### FACTORY FUNCTIONS ------------------------------
 
