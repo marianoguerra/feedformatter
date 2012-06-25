@@ -152,7 +152,12 @@ def _atomise_link(link, rel=None):
 
         return link
     else:
-        return {'href' : link, 'type': 'text/html', 'rel': rel}
+        result = {'href' : link, 'type': 'text/html'}
+
+        if rel:
+            result['rel'] = rel
+
+        return result
 
 def _atomise_author(author):
     """
@@ -292,11 +297,12 @@ def _element_to_string(element, encoding=None):
             self.write = write_function
 
     data = []
-    file_like = Dummy(data.append)
-    ElementTreeCDATA(element).write(file_like, encoding)
 
     if encoding is None:
         encoding = 'utf-8'
+
+    file_like = Dummy(data.append)
+    ElementTreeCDATA(element).write(file_like, encoding)
 
     new_data = []
 
