@@ -70,7 +70,6 @@ import datetime
 
 
 def _get_tz_offset():
-
     """
     Return the current timezone's offset from GMT as a string
     in the format +/-HH:MM, as required by RFC3339.
@@ -87,7 +86,6 @@ def _get_tz_offset():
         return "+%02d:%02d" % (hours, minutes)
 
 def _convert_datetime(time):
-
     """
     Convert time, which may be one of a whole lot of things, into a
     standard 9 part time tuple.
@@ -117,7 +115,6 @@ def _convert_datetime(time):
         raise Exception("Unrecongised time format!")
 
 def _format_datetime(feed_type, time):
-
     """
     Convert some representation of a date and time into a string which can be
     used in a validly formatted feed of type feed_type.  Raise an
@@ -151,7 +148,6 @@ def _atomise_link(link, rel=None):
         return {'href' : link, 'type': 'text/html', 'rel': rel}
 
 def _atomise_author(author):
-
     """
     Convert author from whatever it is to a dictionary representing an
     atom:Person construct.
@@ -171,7 +167,6 @@ def _atomise_author(author):
             return {"name" : author}
 
 def _rssify_author(author):
-
     """
     Convert author from whatever it is to a plain old email string for
     use in an RSS 2.0 feed.
@@ -190,7 +185,6 @@ def _rssify_author(author):
             return None
 
 def _rssify_link(link):
-
     if type(link) is dict:
         return link['href']
     else:
@@ -213,7 +207,6 @@ def _format_content(content):
         }
 
 def _add_subelems(root_element, mappings, dictionary):
-
     """
     Add one subelement to root_element for each key in dictionary
     which is supported by a mapping in mappings
@@ -256,7 +249,6 @@ def _add_subelem(root_element, name, value):
         ET.SubElement(root_element, name).text = value
 
 def _stringify(tree, pretty):
-
     """
     Turn an ElementTree into a string, optionally with line breaks and indentation.
     """
@@ -300,9 +292,8 @@ def _elementToString(element, encoding=None):
 
     return ''.join(new_data)
 
-class Feed:
-
-    ### INTERNAL METHODS ------------------------------
+class Feed(object):
+    """class that represents a feed object"""
 
     def __init__(self, feed=None, items=None):
 
@@ -319,7 +310,6 @@ class Feed:
     ### RSS 1.0 STUFF ------------------------------
 
     def validate_rss1(self):
-
         """Raise an InvalidFeedException if the feed cannot be validly
         formatted as RSS 1.0."""
 
@@ -348,7 +338,6 @@ class Feed:
                 "feed must contain a link subelement")
 
     def format_rss1_string(self, validate=True, pretty=False):
-
         """Format the feed as RSS 1.0 and return the result as a string."""
 
         if validate:
@@ -370,7 +359,6 @@ class Feed:
         return _stringify(RSS1root, pretty=pretty)
 
     def format_rss1_file(self, filename, validate=True, pretty=False):
-
         """Format the feed as RSS 1.0 and save the result to a file."""
 
         string = self.format_rss1_string(validate, pretty)
@@ -381,7 +369,6 @@ class Feed:
     ### RSS 2.0 STUFF ------------------------------
 
     def validate_rss2(self):
-
         """Raise an InvalidFeedException if the feed cannot be validly
         formatted as RSS 2.0."""
 
@@ -407,7 +394,6 @@ class Feed:
                 "feed must contain at least a title or description subelement")
 
     def format_rss2_string(self, validate=True, pretty=False):
-
         """Format the feed as RSS 2.0 and return the result as a string."""
 
         if validate:
@@ -422,7 +408,6 @@ class Feed:
         return '<?xml version="1.0" encoding="UTF-8" ?>\n' + _stringify(RSS2root, pretty=pretty)
 
     def format_rss2_file(self, filename, validate=True, pretty=False):
-
         """Format the feed as RSS 2.0 and save the result to a file."""
 
         string = self.format_rss2_string(validate, pretty)
@@ -433,7 +418,6 @@ class Feed:
     ### ATOM STUFF ------------------------------
 
     def validate_atom(self):
-
         """Raise an InvalidFeedException if the feed cannot be validly
         formatted as Atom 1.0."""
 
@@ -447,7 +431,6 @@ class Feed:
                     " one author element in each entry element")
 
     def format_atom_string(self, validate=True, pretty=False):
-
         """Format the feed as Atom 1.0 and return the result as a string."""
 
         if validate:
@@ -460,7 +443,6 @@ class Feed:
         return '<?xml version="1.0" encoding="UTF-8" ?>\n' + _stringify(AtomRoot, pretty=pretty)
 
     def format_atom_file(self, filename, validate=True, pretty=False):
-
         """Format the feed as Atom 1.0 and save the result to a file."""
 
         string = self.format_atom_string(validate, pretty)
@@ -469,7 +451,6 @@ class Feed:
         fp.close()
 
 class InvalidFeedException(Exception):
-
     pass
 
 def CDATA(text=None):
@@ -565,6 +546,11 @@ def fromUFP(ufp):
 ### MAIN ------------------------------
 
 def main():
+    """
+    main function called when the module is invoked from the command
+    line, display a small demo of the module
+    """
+
     def show(*args):
         """a cross version replacement for print that is useful for the demo
         here"""
