@@ -1,3 +1,4 @@
+'''module to create atom and rss feeds'''
 # Feedformatter
 # Copyright (c) 2008, Luke Maurits <luke@maurits.id.au>
 # All rights reserved.
@@ -86,28 +87,29 @@ def _get_tz_offset():
     else:
         return "+%02d:%02d" % (hours, minutes)
 
-def _convert_datetime(time):
+def _convert_datetime(dtime):
     """
-    Convert time, which may be one of a whole lot of things, into a
+    Convert dtime, which may be one of a whole lot of things, into a
     standard 9 part time tuple.
     """
 
-    if type(time) is datetime.datetime:
-        return time.timetuple()
-    elif (type(time) is tuple and len(time) ==9) or type(time) is struct_time:
+    if type(dtime) is datetime.datetime:
+        return dtime.timetuple()
+    elif ((type(dtime) is tuple and len(dtime) == 9) or
+            type(dtime) is struct_time):
         # Already done!
-        return time
-    elif type(time) is int or type(time) is float:
+        return dtime
+    elif type(dtime) is int or type(dtime) is float:
         # Assume this is a seconds-since-epoch time
-        return localtime(time)
-    elif type(time) in types.StringTypes:
+        return localtime(dtime)
+    elif type(dtime) in types.StringTypes:
         # A time stamp?
         try:
-            return strptime(time, "%a, %d %b %Y %H:%M:%S %Z")
+            return strptime(dtime, "%a, %d %b %Y %H:%M:%S %Z")
         except ValueError:
             # Maybe this is a string of an epoch time?
             try:
-                return localtime(float(time))
+                return localtime(float(dtime))
             except ValueError:
                 # Guess not.
                 raise Exception("Unrecongised time format!")
@@ -115,7 +117,7 @@ def _convert_datetime(time):
         # No idea what this is.  Give up!
         raise Exception("Unrecongised time format!")
 
-def _format_datetime(feed_type, time):
+def _format_datetime(feed_type, dtime):
     """
     Convert some representation of a date and time into a string which can be
     used in a validly formatted feed of type feed_type.  Raise an
@@ -123,13 +125,13 @@ def _format_datetime(feed_type, time):
     """
 
     # First, convert time into a time structure
-    time = _convert_datetime(time)
+    dtime = _convert_datetime(dtime)
 
     # Then, convert that to the appropriate string
     if feed_type is "rss2":
-        return strftime("%a, %d %b %Y %H:%M:%S %Z", time)
+        return strftime("%a, %d %b %Y %H:%M:%S %Z", dtime)
     elif feed_type is "atom":
-        return strftime("%Y-%m-%dT%H:%M:%S", time) + _get_tz_offset();
+        return strftime("%Y-%m-%dT%H:%M:%S", dtime) + _get_tz_offset()
 
 def _atomise_id(tag):
 
@@ -239,22 +241,22 @@ def _add_subelem(root_element, name, value):
 
     if type(value) is dict:
         ### HORRIBLE HACK!
-        if name=="link":
+        if name == "link":
             ET.SubElement(root_element, name, value)
 
         elif name == 'content':
             # A wee hack too, the content node must be
             # converted to a CDATA block. This is a sort of cheat, see:
             # http://stackoverflow.com/questions/174890/how-to-output-cdata-using-elementtree
-            e = ET.Element(name, type= value['type'])
-            e.append(CDATA(value['content']))
-            root_element.append(e)
+            element = ET.Element(name, type= value['type'])
+            element.append(CDATA(value['content']))
+            root_element.append(element)
 
         else:
-            subElem = ET.SubElement(root_element, name)
+            sub_elem = ET.SubElement(root_element, name)
 
             for key in value:
-                _add_subelem(subElem, key, value[key])
+                _add_subelem(sub_elem, key, value[key])
 
     else:
         ET.SubElement(root_element, name).text = value
@@ -267,7 +269,7 @@ def _stringify(tree, pretty):
     if pretty and feedformatterCanPrettyPrint:
         string = StringIO()
         doc = FromXml(_elementToString(tree))
-        PrettyPrint(doc,string,indent="    ")
+        PrettyPrint(doc, string, indent="    ")
 
         return string.getvalue()
     else:
@@ -280,13 +282,16 @@ def _elementToString(element, encoding=None):
     class instead
     """
 
-    class dummy:
-        pass
+    class Dummy(object):
+        """a dummy class that has the required fields to be used in 
+        the write method call below"""
+
+        def __init__(self, write_function):
+            self.write = write_function
 
     data = []
-    file = dummy()
-    file.write = data.append
-    ElementTreeCDATA(element).write(file, encoding)
+    file_like = Dummy(data.append)
+    ElementTreeCDATA(element).write(file_like, encoding)
 
     if encoding is None:
         encoding = 'utf-8'
@@ -357,36 +362,36 @@ class Feed(object):
         if validate:
             self.validate_rss1()
 
-        RSS1root = ET.Element('rdf:RDF',
+        rss1_root = ET.Element('rdf:RDF',
             {"xmlns:rdf" : "http://www.w3.org/1999/02/22-rdf-syntax-ns#",
              "xmlns" : "http://purl.org/rss/1.0/"})
 
-        RSS1channel = ET.SubElement(RSS1root, 'channel',
+        rss1_channel = ET.SubElement(rss1_root, 'channel',
             {"rdf:about" : self.feed["link"]})
 
-        _add_subelems(RSS1channel, _rss1_channel_mappings, self.feed)
+        _add_subelems(rss1_channel, _rss1_channel_mappings, self.feed)
 
-        RSS1contents = ET.SubElement(RSS1channel, 'items')
-        RSS1contents_seq = ET.SubElement (RSS1contents, 'rdf:Seq')
-
-        for item in self.items:
-            ET.SubElement(RSS1contents_seq, 'rdf:li', resource=item["link"])
+        rss1_contents = ET.SubElement(rss1_channel, 'items')
+        rss1_contents_seq = ET.SubElement (rss1_contents, 'rdf:Seq')
 
         for item in self.items:
-            RSS1item = ET.SubElement(RSS1root, 'item',
+            ET.SubElement(rss1_contents_seq, 'rdf:li', resource=item["link"])
+
+        for item in self.items:
+            rss1_item = ET.SubElement(rss1_root, 'item',
                 {"rdf:about" : item["link"]})
 
-            _add_subelems(RSS1item, _rss1_item_mappings, item)
+            _add_subelems(rss1_item, _rss1_item_mappings, item)
 
-        return _stringify(RSS1root, pretty=pretty)
+        return _stringify(rss1_root, pretty=pretty)
 
     def format_rss1_file(self, filename, validate=True, pretty=False):
         """Format the feed as RSS 1.0 and save the result to a file."""
 
         string = self.format_rss1_string(validate, pretty)
-        fp = open(filename, "w")
-        fp.write(string)
-        fp.close()
+        handle = open(filename, "w")
+        handle.write(string)
+        handle.close()
 
     ### RSS 2.0 STUFF ------------------------------
 
@@ -413,7 +418,8 @@ class Feed(object):
         for item in self.items:
             if not ("title" in item or "description" in item):
                 raise InvalidFeedException("Each item element in an RSS 2.0 "
-                    "feed must contain at least a title or description subelement")
+                    "feed must contain at least a title or description"
+                    " subelement")
 
     def format_rss2_string(self, validate=True, pretty=False):
         """Format the feed as RSS 2.0 and return the result as a string."""
@@ -421,25 +427,25 @@ class Feed(object):
         if validate:
             self.validate_rss2()
 
-        RSS2root = ET.Element('rss', {'version':'2.0'})
-        RSS2channel = ET.SubElement(RSS2root, 'channel')
+        rss2_root = ET.Element('rss', {'version':'2.0'})
+        rss2_channel = ET.SubElement(rss2_root, 'channel')
 
-        _add_subelems(RSS2channel, _rss2_channel_mappings, self.feed)
+        _add_subelems(rss2_channel, _rss2_channel_mappings, self.feed)
 
         for item in self.items:
-            RSS2item = ET.SubElement(RSS2channel, 'item')
-            _add_subelems(RSS2item, _rss2_item_mappings, item)
+            rss2_item = ET.SubElement(rss2_channel, 'item')
+            _add_subelems(rss2_item, _rss2_item_mappings, item)
 
         return ('<?xml version="1.0" encoding="UTF-8" ?>\n' +
-            _stringify(RSS2root, pretty=pretty))
+            _stringify(rss2_root, pretty=pretty))
 
     def format_rss2_file(self, filename, validate=True, pretty=False):
         """Format the feed as RSS 2.0 and save the result to a file."""
 
         string = self.format_rss2_string(validate, pretty)
-        fp = open(filename, "w")
-        fp.write(string)
-        fp.close()
+        handle = open(filename, "w")
+        handle.write(string)
+        handle.close()
 
     ### ATOM STUFF ------------------------------
 
@@ -453,8 +459,8 @@ class Feed(object):
             for entry in self.entries:
                 if "author" not in entry:
                     raise InvalidFeedException("Atom feeds must have either at "
-                        "least one author element in the feed element or at least "
-                        " one author element in each entry element")
+                        "least one author element in the feed element or at "
+                        " least one author element in each entry element")
 
     def format_atom_string(self, validate=True, pretty=False):
         """Format the feed as Atom 1.0 and return the result as a string."""
@@ -462,42 +468,48 @@ class Feed(object):
         if validate:
             self.validate_atom()
 
-        AtomRoot = ET.Element('feed', {"xmlns":"http://www.w3.org/2005/Atom"})
-        _add_subelems(AtomRoot, _atom_feed_mappings, self.feed)
+        atom_root = ET.Element('feed', {"xmlns":"http://www.w3.org/2005/Atom"})
+        _add_subelems(atom_root, _atom_feed_mappings, self.feed)
 
         for entry in self.entries:
-            AtomItem = ET.SubElement( AtomRoot, 'entry')
-            _add_subelems(AtomItem, _atom_item_mappings, entry)
+            atom_item = ET.SubElement( atom_root, 'entry')
+            _add_subelems(atom_item, _atom_item_mappings, entry)
 
         return ('<?xml version="1.0" encoding="UTF-8" ?>\n' +
-                _stringify(AtomRoot, pretty=pretty))
+                _stringify(atom_root, pretty=pretty))
 
     def format_atom_file(self, filename, validate=True, pretty=False):
         """Format the feed as Atom 1.0 and save the result to a file."""
 
         string = self.format_atom_string(validate, pretty)
-        fp = open(filename, "w")
-        fp.write(string)
-        fp.close()
+        handle = open(filename, "w")
+        handle.write(string)
+        handle.close()
 
 class InvalidFeedException(Exception):
+    """Exception thrown when manipulating an invalid feed"""
     pass
 
 def CDATA(text=None):
+    """create and return a CDATA element"""
+    if text is None:
+        text = ""
+
     element = ET.Element(CDATA)
     element.text = text
+
     return element
 
 class ElementTreeCDATA(ET.ElementTree):
     """
     Subclass of ElementTree which handles CDATA blocks reasonably
     """
-    def _write(self, file, node, encoding, namespaces):
+    def _write(self, file_like, node, encoding, namespaces):
         if node.tag is CDATA:
             text = node.text.encode(encoding)
-            file.write("\n<![CDATA[%s]]>\n" % text)
+            file_like.write("\n<![CDATA[%s]]>\n" % text)
         else:
-            ET.ElementTree._write(self, file, node, encoding, namespaces)
+            ET.ElementTree._write(self, file_like, node, encoding, namespaces)
 
 # RSS 1.0 Functions ----------
 
@@ -569,7 +581,7 @@ _atom_item_mappings = (
 
 ### FACTORY FUNCTIONS ------------------------------
 
-def fromUFP(ufp):
+def from_ufp(ufp):
 
     return Feed(ufp["feed"], ufp["items"])
 
@@ -591,7 +603,7 @@ def main():
     feed.feed["title"] = "Test Feed"
     feed.feed["link"] = "http://code.google.com/p/feedformatter/"
     feed.feed["author"] = "Luke Maurits"
-    feed.feed["description"] = "A simple test feed for the feedformatter project"
+    feed.feed["description"] = "A simple test feed for feedformatter"
 
     item = {}
     item["title"] = "Test item"
