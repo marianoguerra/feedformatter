@@ -62,13 +62,12 @@ except ImportError:
 try:
     from xml.dom.ext import PrettyPrint
     from xml.dom.ext.reader.Sax import FromXml
-    feedformatterCanPrettyPrint = True
+    CAN_PRETTY_PRINT = True
 except ImportError:
-    feedformatterCanPrettyPrint = False
+    CAN_PRETTY_PRINT = False
 
 import time
 import datetime
-
 
 def _get_tz_offset():
     """
@@ -134,12 +133,15 @@ def _format_datetime(feed_type, dtime):
         return time.strftime("%Y-%m-%dT%H:%M:%S", dtime) + _get_tz_offset()
 
 def _atomise_id(tag):
+    """return a tag in a suitable format for atom"""
 
     if type(tag) is dict:
         return tag['href'].replace('http://', 'tag:')
+
     return tag.replace('http://', 'tag:')
 
 def _atomise_link(link, rel=None):
+    """return a link in a suitable format for atom"""
 
     if type(link) is dict:
         if 'type' not in link:
@@ -187,6 +189,7 @@ def _rssify_author(author):
             return None
 
 def _rssify_link(link):
+    """return a link in a suitable format"""
     if type(link) is dict:
         return link['href']
     else:
@@ -232,6 +235,7 @@ def _add_subelems(root_element, mappings, dictionary):
                 break
 
 def _add_subelem(root_element, name, value):
+    """ad a subelement to *root_element*"""
 
     if value is None:
         return
@@ -244,7 +248,8 @@ def _add_subelem(root_element, name, value):
         elif name == 'content':
             # A wee hack too, the content node must be
             # converted to a CDATA block. This is a sort of cheat, see:
-            # http://stackoverflow.com/questions/174890/how-to-output-cdata-using-elementtree
+            # http://stackoverflow.com
+            #   /questions/174890/how-to-output-cdata-using-elementtree
             element = ET.Element(name, type= value['type'])
             element.append(cdata(value['content']))
             root_element.append(element)
@@ -263,16 +268,16 @@ def _stringify(tree, pretty):
     Turn an ElementTree into a string, optionally with line breaks and indentation.
     """
 
-    if pretty and feedformatterCanPrettyPrint:
+    if pretty and CAN_PRETTY_PRINT:
         string = StringIO()
-        doc = FromXml(_elementToString(tree))
+        doc = FromXml(_element_to_string(tree))
         PrettyPrint(doc, string, indent="    ")
 
         return string.getvalue()
     else:
-        return _elementToString(tree)
+        return _element_to_string(tree)
 
-def _elementToString(element, encoding=None):
+def _element_to_string(element, encoding=None):
     """
     This replaces ElementTree's tostring() function
     with one that will use our local ElementTreeCDATA
@@ -280,7 +285,7 @@ def _elementToString(element, encoding=None):
     """
 
     class Dummy(object):
-        """a dummy class that has the required fields to be used in 
+        """a dummy class that has the required fields to be used in
         the write method call below"""
 
         def __init__(self, write_function):
@@ -580,7 +585,7 @@ _atom_item_mappings = (
 ### FACTORY FUNCTIONS ------------------------------
 
 def from_ufp(ufp):
-
+    """build a Feed object from an ufp (?)"""
     return Feed(ufp["feed"], ufp["items"])
 
 ### MAIN ------------------------------
