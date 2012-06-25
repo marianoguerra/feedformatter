@@ -68,73 +68,6 @@ except ImportError:
 from time import time, strftime, strptime, localtime, mktime, struct_time, timezone
 import datetime
 
-# RSS 1.0 Functions ----------
-
-_rss1_channel_mappings = (
-    (("title",), "title"),
-    (("link", "url"), "link"),
-    (("description", "desc", "summary"), "description")
-)
-
-_rss1_item_mappings = (
-    (("title",), "title"),
-    (("link", "url"), "link"),
-    (("description", "desc", "summary"), "description")
-)
-
-# RSS 2.0 Functions ----------
-
-_rss2_channel_mappings = (
-    (("title",), "title"),
-    (("link", "url"), "link", _rssify_link),
-    (("description", "desc", "summary"), "description"),
-    (("pubDate", "pubdate", "date", "published", "updated"), "pubDate",
-        lambda x: _format_datetime("rss2",x)),
-    (("category",), "category"),
-    (("language",), "language"),
-    (("copyright",), "copyright"),
-    (("webMaster",), "webmaster"),
-    (("image",), "image"),
-    (("skipHours",), "skipHours"),
-    (("skipDays",), "skipDays")
-)
-
-_rss2_item_mappings = (
-    (("title",), "title"),
-    (("link", "url"), "link", _rssify_link),
-    (("description", "desc", "summary"), "description"),
-    (("guid", "id"), "guid"),
-    (("pubDate", "pubdate", "date", "published", "updated"), "pubDate",
-        lambda x: _format_datetime("rss2",x)),
-    (("category",), "category"),
-    (("author",), "author", _rssify_author)
-)
-
-# Atom 1.0 ----------
-
-_atom_feed_mappings = (
-    (("title",), "title"),
-    (("id", "link", "url"), "id", _atomise_id),
-    (("link", "url"), "link", _atomise_link),
-    (("description", "desc", "summary"), "subtitle"),
-    (("pubDate", "pubdate", "date", "published", "updated"), "updated",
-        lambda x: _format_datetime("atom",x)),
-    (("category",), "category"),
-    (("author",), "author", _atomise_author)
-)
-
-_atom_item_mappings = (
-    (("title",), "title"),
-    (("link", "url"), "link", lambda x: _atomise_link(x, rel='alternate')),
-    (("id", "link", "url"), "id", _atomise_id),
-    (("description", "desc", "summary"), "summary"),
-    (("content",), "content", _format_content),
-    (("pubDate", "pubdate", "date", "published", "updated"), "published",
-        lambda x: _format_datetime("atom",x)),
-    (("updated",), "updated", lambda x: _format_datetime("atom",x)),
-    (("category",), "category"),
-    (("author",), "author", _atomise_author)
-)
 
 def _get_tz_offset():
 
@@ -243,7 +176,7 @@ def _rssify_author(author):
     Convert author from whatever it is to a plain old email string for
     use in an RSS 2.0 feed.
     """
-    
+
     if type(author) is dict:
         try:
             return author["email"]
@@ -294,8 +227,8 @@ def _add_subelems(root_element, mappings, dictionary):
                 elif len(mapping) == 3:
                     value = mapping[2](dictionary[key])
                 _add_subelem(root_element, mapping[1], value)
-                break                
-    
+                break
+
 def _add_subelem(root_element, name, value):
 
     if value is None:
@@ -307,7 +240,7 @@ def _add_subelem(root_element, name, value):
             ET.SubElement(root_element, name, value)
 
         elif name == 'content':
-            # A wee hack too, the content node must be 
+            # A wee hack too, the content node must be
             # converted to a CDATA block. This is a sort of cheat, see:
             # http://stackoverflow.com/questions/174890/how-to-output-cdata-using-elementtree
             e = ET.Element(name, type= value['type'])
@@ -370,7 +303,7 @@ def _elementToString(element, encoding=None):
 class Feed:
 
     ### INTERNAL METHODS ------------------------------
-    
+
     def __init__(self, feed=None, items=None):
 
         if feed:
@@ -384,7 +317,7 @@ class Feed:
         self.entries = self.items
 
     ### RSS 1.0 STUFF ------------------------------
-        
+
     def validate_rss1(self):
 
         """Raise an InvalidFeedException if the feed cannot be validly
@@ -413,14 +346,14 @@ class Feed:
             if "link" not in item:
                 raise InvalidFeedException("Each item element in an RSS 1.0 "
                 "feed must contain a link subelement")
-        
+
     def format_rss1_string(self, validate=True, pretty=False):
 
         """Format the feed as RSS 1.0 and return the result as a string."""
 
         if validate:
             self.validate_rss1()
-        RSS1root = ET.Element( 'rdf:RDF', 
+        RSS1root = ET.Element( 'rdf:RDF',
             {"xmlns:rdf" : "http://www.w3.org/1999/02/22-rdf-syntax-ns#",
              "xmlns" : "http://purl.org/rss/1.0/"} )
         RSS1channel = ET.SubElement(RSS1root, 'channel',
@@ -482,7 +415,7 @@ class Feed:
         RSS2root = ET.Element( 'rss', {'version':'2.0'} )
         RSS2channel = ET.SubElement( RSS2root, 'channel' )
         _add_subelems(RSS2channel, _rss2_channel_mappings, self.feed)
-        for item in self.items:            
+        for item in self.items:
             RSS2item = ET.SubElement ( RSS2channel, 'item' )
             _add_subelems(RSS2item, _rss2_item_mappings, item)
 
@@ -555,6 +488,73 @@ class ElementTreeCDATA(ET.ElementTree):
         else:
             ET.ElementTree._write(self, file, node, encoding, namespaces)
 
+# RSS 1.0 Functions ----------
+
+_rss1_channel_mappings = (
+    (("title",), "title"),
+    (("link", "url"), "link"),
+    (("description", "desc", "summary"), "description")
+)
+
+_rss1_item_mappings = (
+    (("title",), "title"),
+    (("link", "url"), "link"),
+    (("description", "desc", "summary"), "description")
+)
+
+# RSS 2.0 Functions ----------
+
+_rss2_channel_mappings = (
+    (("title",), "title"),
+    (("link", "url"), "link", _rssify_link),
+    (("description", "desc", "summary"), "description"),
+    (("pubDate", "pubdate", "date", "published", "updated"), "pubDate",
+        lambda x: _format_datetime("rss2",x)),
+    (("category",), "category"),
+    (("language",), "language"),
+    (("copyright",), "copyright"),
+    (("webMaster",), "webmaster"),
+    (("image",), "image"),
+    (("skipHours",), "skipHours"),
+    (("skipDays",), "skipDays")
+)
+
+_rss2_item_mappings = (
+    (("title",), "title"),
+    (("link", "url"), "link", _rssify_link),
+    (("description", "desc", "summary"), "description"),
+    (("guid", "id"), "guid"),
+    (("pubDate", "pubdate", "date", "published", "updated"), "pubDate",
+        lambda x: _format_datetime("rss2",x)),
+    (("category",), "category"),
+    (("author",), "author", _rssify_author)
+)
+
+# Atom 1.0 ----------
+
+_atom_feed_mappings = (
+    (("title",), "title"),
+    (("id", "link", "url"), "id", _atomise_id),
+    (("link", "url"), "link", _atomise_link),
+    (("description", "desc", "summary"), "subtitle"),
+    (("pubDate", "pubdate", "date", "published", "updated"), "updated",
+        lambda x: _format_datetime("atom",x)),
+    (("category",), "category"),
+    (("author",), "author", _atomise_author)
+)
+
+_atom_item_mappings = (
+    (("title",), "title"),
+    (("link", "url"), "link", lambda x: _atomise_link(x, rel='alternate')),
+    (("id", "link", "url"), "id", _atomise_id),
+    (("description", "desc", "summary"), "summary"),
+    (("content",), "content", _format_content),
+    (("pubDate", "pubdate", "date", "published", "updated"), "published",
+        lambda x: _format_datetime("atom",x)),
+    (("updated",), "updated", lambda x: _format_datetime("atom",x)),
+    (("category",), "category"),
+    (("author",), "author", _atomise_author)
+)
 
 ### FACTORY FUNCTIONS ------------------------------
 
