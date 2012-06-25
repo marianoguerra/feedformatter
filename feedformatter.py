@@ -345,7 +345,23 @@ def _elementToString(element, encoding=None):
     file = dummy()
     file.write = data.append
     ElementTreeCDATA(element).write(file, encoding)
-    return ''.join(data)
+
+    if encoding is None:
+        encoding = 'utf-8'
+
+    new_data = []
+
+    for item in data:
+        if item is None:
+            new_item = ""
+        elif isinstance(item, bytes):
+            new_item = item.decode(encoding)
+        else:
+            new_item = item
+
+        new_data.append(new_item)
+
+    return ''.join(new_data)
 
 class Feed:
 
