@@ -101,7 +101,7 @@ def _convert_datetime(dtime):
     elif type(dtime) is int or type(dtime) is float:
         # Assume this is a seconds-since-epoch time
         return time.localtime(dtime)
-    elif type(dtime) in types.StringTypes:
+    elif isinstance(dtime, basestring):
         # A time stamp?
         try:
             return time.strptime(dtime, "%a, %d %b %Y %H:%M:%S %Z")
