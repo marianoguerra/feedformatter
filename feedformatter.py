@@ -86,9 +86,10 @@ _rss1_item_mappings = (
 
 _rss2_channel_mappings = (
     (("title",), "title"),
-    (("link", "url"), "link", lambda x: _rssify_link(x)),
+    (("link", "url"), "link", _rssify_link),
     (("description", "desc", "summary"), "description"),
-    (("pubDate", "pubdate", "date", "published", "updated"), "pubDate", lambda x: _format_datetime("rss2",x)),
+    (("pubDate", "pubdate", "date", "published", "updated"), "pubDate",
+        lambda x: _format_datetime("rss2",x)),
     (("category",), "category"),
     (("language",), "language"),
     (("copyright",), "copyright"),
@@ -100,36 +101,39 @@ _rss2_channel_mappings = (
 
 _rss2_item_mappings = (
     (("title",), "title"),
-    (("link", "url"), "link", lambda x: _rssify_link(x)),
+    (("link", "url"), "link", _rssify_link),
     (("description", "desc", "summary"), "description"),
     (("guid", "id"), "guid"),
-    (("pubDate", "pubdate", "date", "published", "updated"), "pubDate", lambda x: _format_datetime("rss2",x)),
+    (("pubDate", "pubdate", "date", "published", "updated"), "pubDate",
+        lambda x: _format_datetime("rss2",x)),
     (("category",), "category"),
-    (("author",), "author", lambda x: _rssify_author(x))
+    (("author",), "author", _rssify_author)
 )
 
 # Atom 1.0 ----------
 
 _atom_feed_mappings = (
     (("title",), "title"),
-    (("id", "link", "url"), "id", lambda x: _atomise_id(x)),
-    (("link", "url"), "link", lambda x:_atomise_link(x)),
+    (("id", "link", "url"), "id", _atomise_id),
+    (("link", "url"), "link", _atomise_link),
     (("description", "desc", "summary"), "subtitle"),
-    (("pubDate", "pubdate", "date", "published", "updated"), "updated", lambda x: _format_datetime("atom",x)),
+    (("pubDate", "pubdate", "date", "published", "updated"), "updated",
+        lambda x: _format_datetime("atom",x)),
     (("category",), "category"),
-    (("author",), "author", lambda x: _atomise_author(x))
+    (("author",), "author", _atomise_author)
 )
 
 _atom_item_mappings = (
     (("title",), "title"),
     (("link", "url"), "link", lambda x: _atomise_link(x, rel='alternate')),
-    (("id", "link", "url"), "id", lambda x: _atomise_id(x)),
+    (("id", "link", "url"), "id", _atomise_id),
     (("description", "desc", "summary"), "summary"),
-    (("content",), "content", lambda x: _format_content(x)),
-    (("pubDate", "pubdate", "date", "published", "updated"), "published", lambda x: _format_datetime("atom",x)),
+    (("content",), "content", _format_content),
+    (("pubDate", "pubdate", "date", "published", "updated"), "published",
+        lambda x: _format_datetime("atom",x)),
     (("updated",), "updated", lambda x: _format_datetime("atom",x)),
     (("category",), "category"),
-    (("author",), "author", lambda x: _atomise_author(x))
+    (("author",), "author", _atomise_author)
 )
 
 def _get_tz_offset():
