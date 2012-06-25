@@ -66,7 +66,7 @@ try:
 except ImportError:
     feedformatterCanPrettyPrint = False
 
-from time import time, strftime, strptime, localtime, mktime, struct_time, timezone
+import time
 import datetime
 
 
@@ -76,7 +76,7 @@ def _get_tz_offset():
     in the format +/-HH:MM, as required by RFC3339.
     """
 
-    seconds = -1 * timezone    # Python gets the offset backward! >:(
+    seconds = -1 * time.timezone    # Python gets the offset backward! >:(
     minutes = seconds / 60
     hours = minutes / 60
     minutes = minutes - hours * 60
@@ -96,20 +96,20 @@ def _convert_datetime(dtime):
     if type(dtime) is datetime.datetime:
         return dtime.timetuple()
     elif ((type(dtime) is tuple and len(dtime) == 9) or
-            type(dtime) is struct_time):
+            type(dtime) is time.struct_time):
         # Already done!
         return dtime
     elif type(dtime) is int or type(dtime) is float:
         # Assume this is a seconds-since-epoch time
-        return localtime(dtime)
+        return time.localtime(dtime)
     elif type(dtime) in types.StringTypes:
         # A time stamp?
         try:
-            return strptime(dtime, "%a, %d %b %Y %H:%M:%S %Z")
+            return time.strptime(dtime, "%a, %d %b %Y %H:%M:%S %Z")
         except ValueError:
             # Maybe this is a string of an epoch time?
             try:
-                return localtime(float(dtime))
+                return time.localtime(float(dtime))
             except ValueError:
                 # Guess not.
                 raise Exception("Unrecongised time format!")
@@ -129,9 +129,9 @@ def _format_datetime(feed_type, dtime):
 
     # Then, convert that to the appropriate string
     if feed_type is "rss2":
-        return strftime("%a, %d %b %Y %H:%M:%S %Z", dtime)
+        return time.strftime("%a, %d %b %Y %H:%M:%S %Z", dtime)
     elif feed_type is "atom":
-        return strftime("%Y-%m-%dT%H:%M:%S", dtime) + _get_tz_offset()
+        return time.strftime("%Y-%m-%dT%H:%M:%S", dtime) + _get_tz_offset()
 
 def _atomise_id(tag):
 
