@@ -249,7 +249,7 @@ def _add_subelem(root_element, name, value):
             # converted to a CDATA block. This is a sort of cheat, see:
             # http://stackoverflow.com/questions/174890/how-to-output-cdata-using-elementtree
             element = ET.Element(name, type= value['type'])
-            element.append(CDATA(value['content']))
+            element.append(cdata(value['content']))
             root_element.append(element)
 
         else:
@@ -490,12 +490,12 @@ class InvalidFeedException(Exception):
     """Exception thrown when manipulating an invalid feed"""
     pass
 
-def CDATA(text=None):
+def cdata(text=None):
     """create and return a CDATA element"""
     if text is None:
         text = ""
 
-    element = ET.Element(CDATA)
+    element = ET.Element("CDATA")
     element.text = text
 
     return element
@@ -505,7 +505,8 @@ class ElementTreeCDATA(ET.ElementTree):
     Subclass of ElementTree which handles CDATA blocks reasonably
     """
     def _write(self, file_like, node, encoding, namespaces):
-        if node.tag is CDATA:
+        """write this element representation to *file_like*"""
+        if node.tag == "CDATA":
             text = node.text.encode(encoding)
             file_like.write("\n<![CDATA[%s]]>\n" % text)
         else:
