@@ -178,10 +178,7 @@ def _rssify_author(author):
     """
 
     if type(author) is dict:
-        try:
-            return author["email"]
-        except KeyError:
-            return None
+        return author.get("email", None)
     else:
         if "@" in author and "." in author:
             # Probably an email address
