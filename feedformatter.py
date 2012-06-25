@@ -26,11 +26,21 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 
-__version__ = "TRUNK"
-__author__ = "Luke Maurits, Michael Stella"
+import sys
+
+PY3 = sys.version_info.major == 3
+
+__version__ = "0.5"
+__author__ = "Luke Maurits, Michael Stella, Mariano Guerra"
 __copyright__ = "Copyright 2008 Luke Maurits"
 
-from cStringIO import StringIO
+if PY3:
+    from io import StringIO
+else:
+    try:
+        from cStringIO import StringIO
+    except ImportError:
+        from StringIO import StringIO
 
 # This "staircase" of import attempts is ugly.  If there's a nicer way to do
 # this, please let me know!
@@ -76,9 +86,9 @@ _rss1_item_mappings = (
 
 _rss2_channel_mappings = (
     (("title",), "title"),
-    (("link", "url"), "link", lambda(x): _rssify_link(x)),
+    (("link", "url"), "link", lambda x: _rssify_link(x)),
     (("description", "desc", "summary"), "description"),
-    (("pubDate", "pubdate", "date", "published", "updated"), "pubDate", lambda(x): _format_datetime("rss2",x)),
+    (("pubDate", "pubdate", "date", "published", "updated"), "pubDate", lambda x: _format_datetime("rss2",x)),
     (("category",), "category"),
     (("language",), "language"),
     (("copyright",), "copyright"),
@@ -90,36 +100,36 @@ _rss2_channel_mappings = (
 
 _rss2_item_mappings = (
     (("title",), "title"),
-    (("link", "url"), "link", lambda(x): _rssify_link(x)),
+    (("link", "url"), "link", lambda x: _rssify_link(x)),
     (("description", "desc", "summary"), "description"),
     (("guid", "id"), "guid"),
-    (("pubDate", "pubdate", "date", "published", "updated"), "pubDate", lambda(x): _format_datetime("rss2",x)),
+    (("pubDate", "pubdate", "date", "published", "updated"), "pubDate", lambda x: _format_datetime("rss2",x)),
     (("category",), "category"),
-    (("author",), "author", lambda(x): _rssify_author(x))
+    (("author",), "author", lambda x: _rssify_author(x))
 )
 
 # Atom 1.0 ----------
 
 _atom_feed_mappings = (
     (("title",), "title"),
-    (("id", "link", "url"), "id", lambda(x): _atomise_id(x)),
-    (("link", "url"), "link", lambda(x):_atomise_link(x)),
+    (("id", "link", "url"), "id", lambda x: _atomise_id(x)),
+    (("link", "url"), "link", lambda x:_atomise_link(x)),
     (("description", "desc", "summary"), "subtitle"),
-    (("pubDate", "pubdate", "date", "published", "updated"), "updated", lambda(x): _format_datetime("atom",x)),
+    (("pubDate", "pubdate", "date", "published", "updated"), "updated", lambda x: _format_datetime("atom",x)),
     (("category",), "category"),
-    (("author",), "author", lambda(x): _atomise_author(x))
+    (("author",), "author", lambda x: _atomise_author(x))
 )
 
 _atom_item_mappings = (
     (("title",), "title"),
-    (("link", "url"), "link", lambda(x): _atomise_link(x, rel='alternate')),
-    (("id", "link", "url"), "id", lambda(x): _atomise_id(x)),
+    (("link", "url"), "link", lambda x: _atomise_link(x, rel='alternate')),
+    (("id", "link", "url"), "id", lambda x: _atomise_id(x)),
     (("description", "desc", "summary"), "summary"),
-    (("content",), "content", lambda(x): _format_content(x)),
-    (("pubDate", "pubdate", "date", "published", "updated"), "published", lambda(x): _format_datetime("atom",x)),
-    (("updated",), "updated", lambda(x): _format_datetime("atom",x)),
+    (("content",), "content", lambda x: _format_content(x)),
+    (("pubDate", "pubdate", "date", "published", "updated"), "published", lambda x: _format_datetime("atom",x)),
+    (("updated",), "updated", lambda x: _format_datetime("atom",x)),
     (("category",), "category"),
-    (("author",), "author", lambda(x): _atomise_author(x))
+    (("author",), "author", lambda x: _atomise_author(x))
 )
 
 def _get_tz_offset():
@@ -535,6 +545,11 @@ def fromUFP(ufp):
 ### MAIN ------------------------------
 
 def main():
+    def show(*args):
+        """a cross version replacement for print that is useful for the demo
+        here"""
+        sys.stdout.write(" ".join([str(arg) for arg in args]))
+        sys.stdout.write("\n")
 
     feed = Feed()
     feed.feed["title"] = "Test Feed"
@@ -547,12 +562,12 @@ def main():
     item["description"] = "Python programming language"
     item["guid"] = "1234567890"
     feed.items.append(item)
-    print("---- RSS 1.0 ----")
-    print feed.format_rss1_string(pretty=True)
-    print("---- RSS 2.0 ----")
-    print feed.format_rss2_string(pretty=True)
-    print("---- Atom 1.0 ----")
-    print feed.format_atom_string(pretty=True)
+    show("---- RSS 1.0 ----")
+    show(feed.format_rss1_string(pretty=True))
+    show("---- RSS 2.0 ----")
+    show(feed.format_rss2_string(pretty=True))
+    show("---- Atom 1.0 ----")
+    show(feed.format_atom_string(pretty=True))
 
 if __name__ == "__main__":
     main()
