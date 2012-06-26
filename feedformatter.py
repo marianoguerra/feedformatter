@@ -29,7 +29,7 @@
 
 import sys
 
-PY3 = sys.version_info.major == 3
+PY3 = sys.version_info[0] == 3
 
 __version__ = "0.5"
 __author__ = "Luke Maurits, Michael Stella, Mariano Guerra"
@@ -38,6 +38,10 @@ __copyright__ = "Copyright 2008 Luke Maurits"
 if PY3:
     from io import StringIO
 else:
+
+    if sys.version_info[1] < 6:
+        bytes = str
+
     try:
         from cStringIO import StringIO
     except ImportError:
