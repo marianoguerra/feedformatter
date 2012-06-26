@@ -1,3 +1,8 @@
+feedformatter 0.5 - Jun 26, 2012
+
+    * Make it work on python 2 and python 3 at the same time
+    * warning and code style cleanup
+
 feedformatter 0.4 - XXX Y, 2009
 
     * Migrated code base to Google code project.
