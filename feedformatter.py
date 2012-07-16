@@ -37,6 +37,7 @@ __copyright__ = "Copyright 2008 Luke Maurits"
 
 if PY3:
     from io import StringIO
+    basestring = str
 else:
 
     if sys.version_info[1] < 6:
