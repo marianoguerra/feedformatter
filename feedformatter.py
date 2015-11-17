@@ -129,7 +129,8 @@ def _format_datetime(feed_type, dtime):
     """
 
     # First, convert time into a time structure
-    dtime = _convert_datetime(dtime)
+    if not type(dtime) is time.struct_time:
+        dtime = _convert_datetime(dtime)
 
     # Then, convert that to the appropriate string
     if feed_type is "rss2":
@@ -545,7 +546,7 @@ _rss2_channel_mappings = (
     (("title",), "title"),
     (("link", "url"), "link", _rssify_link),
     (("description", "desc", "summary"), "description"),
-    (("pubDate", "pubdate", "date", "published", "updated"), "pubDate",
+    (("pubDate_parsed", "pubdate_parsed", "date_parsed", "published_parsed", "updated_parsed", "pubDate", "pubdate", "date", "published", "updated"), "pubDate",
         lambda x: _format_datetime("rss2",x)),
     (("category",), "category"),
     (("language",), "language"),
@@ -561,7 +562,7 @@ _rss2_item_mappings = (
     (("link", "url"), "link", _rssify_link),
     (("description", "desc", "summary"), "description"),
     (("guid", "id"), "guid"),
-    (("pubDate", "pubdate", "date", "published", "updated"), "pubDate",
+    (("pubDate_parsed", "pubdate_parsed", "date_parsed", "published_parsed", "updated_parsed", "pubDate", "pubdate", "date", "published", "updated"), "pubDate",
         lambda x: _format_datetime("rss2",x)),
     (("category",), "category"),
     (("author",), "author", _rssify_author)
@@ -574,7 +575,7 @@ _atom_feed_mappings = (
     (("id", "link", "url"), "id", _atomise_id),
     (("link", "url"), "link", _atomise_link),
     (("description", "desc", "summary"), "subtitle"),
-    (("pubDate", "pubdate", "date", "published", "updated"), "updated",
+    (("pubDate_parsed", "pubdate_parsed", "date_parsed", "published_parsed", "updated_parsed", "pubDate", "pubdate", "date", "published", "updated"), "updated",
         lambda x: _format_datetime("atom",x)),
     (("category",), "category"),
     (("author",), "author", _atomise_author)
@@ -586,7 +587,7 @@ _atom_item_mappings = (
     (("id", "link", "url"), "id", _atomise_id),
     (("description", "desc", "summary"), "summary"),
     (("content",), "content", _format_content),
-    (("pubDate", "pubdate", "date", "published", "updated"), "published",
+    (("pubDate_parsed", "pubdate_parsed", "date_parsed", "published_parsed", "updated_parsed", "pubDate", "pubdate", "date", "published", "updated"), "published",
         lambda x: _format_datetime("atom",x)),
     (("updated",), "updated", lambda x: _format_datetime("atom",x)),
     (("category",), "category"),
